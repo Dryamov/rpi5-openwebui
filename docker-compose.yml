@@ -1,0 +1,73 @@
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE}
+    container_name: ollama
+    restart: unless-stopped
+    expose:
+      - "11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: ${CADDY_IMAGE}
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "${CADDY_PORT_HTTP}:80"
+      - "${CADDY_PORT_HTTPS}:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+    networks:
+      - backend-net
+    depends_on:
+      openwebui:
+        condition: service_healthy # Ждем, пока UI будет готов
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:2019/config/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  openwebui:
+    image: ${OPENWEBUI_IMAGE}
+    container_name: openwebui
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-your-secret-key}
+    volumes:
+      - ./openwebui/data:/app/backend/data
+    networks:
+      - backend-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+networks:
+  backend-net:
+    driver: bridge
+
+volumes:
+  ollama_data:
+    name: ollama_data
