@@ -1,0 +1,27 @@
+{
+    # Указываем почту для уведомлений от Let's Encrypt (желательно)
+    # email your-email@example.com
+}
+
+# Если вы тестируете локально, оставьте localhost.
+# Если сервер в сети — замените на реальный домен.
+localhost {
+    # Реверс-прокси на Open WebUI
+    reverse_proxy openwebui:8080 {
+        # Настройка таймаутов для долгих ответов от нейросетей
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    # Настройки безопасности заголовков
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Strict-Transport-Security "max-age=31536000;"
+    }
+
+    # Логирование (путь /data внутри контейнера примонтирован к вашей папке)
+    log {
+        output file /data/access.log
+    }
+}
