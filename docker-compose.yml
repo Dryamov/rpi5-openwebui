@@ -1,3 +1,5 @@
+name: rpi5-openwebui
+
 services:
   ollama:
     image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
@@ -15,6 +17,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
 
   caddy:
     image: ${CADDY_IMAGE:-caddy:2.10}
@@ -39,7 +45,7 @@ services:
       searxng:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://caddy:2019/metrics || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://caddy:2019/metrics || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -49,6 +55,10 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   openwebui:
     image: ${OPENWEBUI_IMAGE:-ghcr.io/open-webui/open-webui:main}
@@ -58,7 +68,9 @@ services:
       - "8080"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-$(openssl rand -hex 32)}}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - ENABLE_CORS=${ENABLE_CORS:-false}
+      - CORS_ALLOW_ORIGIN=${CORS_ALLOW_ORIGIN:-*}
     volumes:
       - ./openwebui/data:/app/backend/data
     networks:
@@ -72,7 +84,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   valkey:
     container_name: valkey
@@ -89,11 +104,15 @@ services:
         max-size: "1m"
         max-file: "1"
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: [ "CMD", "valkey-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   searxng:
     container_name: searxng
@@ -113,7 +132,7 @@ services:
       - SEARXNG_LIMITER=${SEARXNG_LIMITER:-false}
       - SEARXNG_BASE_URL=https://search.${SEARXNG_BASE_URL:-search.localhost}/
       - SEARXNG_IMAGE_PROXY=${SEARXNG_IMAGE_PROXY:-false}
-      - SEARXNG_SECRET=${SEARXNG_SECRET:-$(openssl rand -hex 32)}
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
       - SEARXNG_VALKEY_URL=${SEARXNG_VALKEY_URL:-valkey://valkey:6379/0}
       - SEARXNG_DEBUG=${SEARXNG_DEBUG:-false}
       - SEARXNG_PORT=${SEARXNG_PORT:-8080}
@@ -128,16 +147,21 @@ services:
       valkey:
         condition: service_healthy
     healthcheck:
-      test: 
+      test:
         - "CMD-SHELL"
-        - "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://0.0.0.0:8080/healthz\")'"
+        - "python3 -c 'import urllib.request; req = urllib.request.Request(\"http://localhost:8080/healthz\"); req.add_header(\"X-Forwarded-For\", \"127.0.0.1\"); urllib.request.urlopen(req)'"
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
 networks:
   backend-net:
+
 
 volumes:
   ollama_data:
@@ -146,8 +170,6 @@ volumes:
     name: caddy_data
   caddy_config:
     name: caddy_config
-  searxng_config:
-    name: searxng_config
   searxng_data:
     name: searxng_data
   valkey_data:
