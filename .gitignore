@@ -3,3 +3,4 @@ caddy/data/*
 openwebui/data/*
 cli-proxy-api-plus/logs/*
 cli-proxy-api-plus/auths/*
+backups/

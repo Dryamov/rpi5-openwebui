@@ -1,4 +1,4 @@
-name: rpi5-openwebui
+# name: rpi5-openwebui (Disabled for compatibility with older docker-compose)
 
 services:
   ollama:
@@ -45,6 +45,8 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
+      cli-proxy-api-plus:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://caddy:2019/metrics || exit 1" ]
       interval: 10s
@@ -78,6 +80,10 @@ services:
       - backend-net
     depends_on:
       ollama:
+        condition: service_healthy
+      cli-proxy-api-plus:
+        condition: service_healthy
+      searxng:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
@@ -165,6 +171,11 @@ services:
     restart: unless-stopped
     networks:
       - backend-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
     expose:
       - "8317"
     ports:
@@ -174,7 +185,7 @@ services:
       - DEPLOY=${DEPLOY:-}
     volumes:
       - ./cli-proxy-api-plus/config/config.yaml:/CLIProxyAPI/config.yaml
-      - ./cli-proxy-api-plus/auths:/root/.cli-proxy-api
+      - cli-proxy_auths:/root/.cli-proxy-api
       - ./cli-proxy-api-plus/logs:/CLIProxyAPI/logs
     logging:
       driver: "json-file"
@@ -198,12 +209,14 @@ networks:
 
 volumes:
   ollama_data:
-    name: ollama_data
+    external: true
   caddy_data:
-    name: caddy_data
+    external: true
   caddy_config:
-    name: caddy_config
+    external: true
   searxng_data:
-    name: searxng_data
+    external: true
   valkey_data:
-    name: valkey_data
+    external: true
+  cli-proxy_auths:
+    external: true

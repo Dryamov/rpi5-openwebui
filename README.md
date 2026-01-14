@@ -55,6 +55,38 @@ docker compose up -d --remove-orphans
 docker compose logs -f
 ```
 
+### Open WebUI Configuration
+Open WebUI is primarily configured via environment variables. For a full list of available options:
+1. See [openwebui/config.example.env](file:///home/dryamov/Repositories/rpi5-openwebui/openwebui/config.example.env).
+2. To use these variables, you can add them to your root `.env` file or directly in `docker-compose.yml`.
+
+> [!NOTE]
+> Open WebUI stores many settings in its internal database (PersistentConfig). To force it to reload from environment variables, set `ENABLE_PERSISTENT_CONFIG=false`.
+
+## Резервное копирование и восстановление (Backup & Restore)
+Для защиты ваших данных предусмотрена масштабируемая система бэкапов в папке `scripts/`. Скрипты работают с локальными файлами и Docker томами.
+
+### Особенности V2
+- **Конфигурация**: Все настройки вынесены в `scripts/backup.config`.
+- **Авто-обнаружение**: Скрипт автоматически находит тома с меткой `com.backup=true` (настроено в `docker-compose.yml`).
+- **Безопасность**: Используется `trap` для автоматического запуска контейнеров при прерывании бэкапа.
+- **Удаленное хранилище**: Поддержка `rclone` для отправки архивов в облако (Gdrive, S3 и др.).
+
+### Создание бэкапа
+Запустите скрипт:
+```bash
+./scripts/backup.sh
+```
+- Скрипт создаст архив в папке `./backups`.
+- По умолчанию исключаются тяжелые данные (модели Ollama), что экономит место.
+- Старые копии (старше 7 дней) удаляются автоматически.
+
+### Восстановление
+```bash
+./scripts/restore.sh ./backups/rpi5-openwebui_backup_XXXX.tar.gz
+```
+- **Внимание**: Текущие данные будут перезаписаны! Скрипт восстановит и файлы проекта, и содержимое Docker томов.
+
 ## Optimization for RPi5
 - **Resource Limits**: Configured in `docker-compose.yml` to prevent system crashes.
 - **Valkey**: Used by SearXNG for ultra-fast result caching.

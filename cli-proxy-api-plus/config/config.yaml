@@ -57,9 +57,11 @@ quota-exceeded:
 routing:
   strategy: "round-robin" # round-robin (default), fill-first
 # When true, enable authentication for the WebSocket API (/v1/ws).
-ws-auth: false
+ws-auth: true
 # When > 0, emit blank lines every N seconds for non-streaming responses to prevent idle timeouts.
 nonstream-keepalive-interval: 0
+gemini-api-key:
+  - api-key: AIzaSyDV22nFwt_wG8mm6qWyUN7b3BsmD-oGKRg
 
 # Streaming behavior (SSE keep-alives + safe bootstrap retries).
 # streaming:
