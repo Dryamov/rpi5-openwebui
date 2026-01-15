@@ -112,6 +112,33 @@ Open WebUI is primarily configured via environment variables. For a full list of
 - **Valkey**: Used by SearXNG for ultra-fast result caching.
 - **RAG Server Architecture**: RPi5 functions as a dedicated RAG server, offloading LLM inference to remote APIs to ensure high performance and stability.
 
+## Мониторинг и Телеметрия
+
+OpenWebUI поддерживает распределенную трассировку и экспорт метрик через OpenTelemetry (OTLP). Это позволяет интегрировать мониторинг с современными observability стеками (Grafana LGTM, Jaeger, Tempo, Prometheus).
+
+Для детальной настройки см. [TELEMETRY.MD](file:///home/dryamov/Repositories/rpi5-openwebui/TELEMETRY.MD).
+
+**Быстрый старт**:
+```bash
+docker compose -f docker-compose.otel.yaml up -d
+```
+
+Grafana дашборд доступен на http://localhost:3000 (логин: `admin` / `admin`)
+
+## Документация
+
+Подробная документация по каждому сервису доступна в директории `docs/`:
+
+- [Caddy](file:///home/dryamov/Repositories/rpi5-openwebui/docs/services/caddy.md) — Reverse proxy и SSL
+- [SearXNG](file:///home/dryamov/Repositories/rpi5-openwebui/docs/services/searxng.md) — Метапоиск и интеграция с Valkey
+- [OpenWebUI](file:///home/dryamov/Repositories/rpi5-openwebui/docs/services/openwebui.md) — CORS, мониторинг, переменные окружения
+- [Ollama](file:///home/dryamov/Repositories/rpi5-openwebui/docs/services/ollama.md) — Управление моделями, рекомендации для RPi5
+- [CLI-Proxy-API-Plus](file:///home/dryamov/Repositories/rpi5-openwebui/docs/services/cli-proxy-api-plus.md) — API ключи и конфигурация
+
+## Участие в разработке
+
+Хотите добавить новый сервис или улучшить существующий? См. [CONTRIBUTING.md](file:///home/dryamov/Repositories/rpi5-openwebui/CONTRIBUTING.md) для инструкций.
+
 ## Security Hardening
 ### Production CORS
 To avoid the `CORS_ALLOW_ORIGIN is set to '*'` warning in production:

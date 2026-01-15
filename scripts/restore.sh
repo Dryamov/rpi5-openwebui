@@ -21,6 +21,19 @@ NC='\033[0m'
 BACKUP_FILE="$1"
 TEMP_DIR="/tmp/restore_rpi5_$(date +%s)"
 
+# --- Предварительные проверки ---
+# Проверка Docker
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}[ERROR]${NC} Docker не установлен или недоступен"
+    exit 1
+fi
+
+# Проверка docker compose
+if ! docker compose version &> /dev/null; then
+    echo -e "${RED}[ERROR]${NC} Docker Compose недоступен"
+    exit 1
+fi
+
 # --- Функции ---
 log_message() {
     local level=$1

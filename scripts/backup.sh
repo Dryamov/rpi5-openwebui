@@ -21,6 +21,19 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# --- Предварительные проверки ---
+# Проверка Docker
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}[ERROR]${NC} Docker не установлен или недоступен"
+    exit 1
+fi
+
+# Проверка docker compose
+if ! docker compose version &> /dev/null; then
+    echo -e "${RED}[ERROR]${NC} Docker Compose недоступен"
+    exit 1
+fi
+
 # --- Функции ---
 log_message() {
     local level=$1
@@ -67,6 +80,16 @@ mkdir -p "${PROJECT_ROOT}/${BACKUP_DIR}"
 mkdir -p "${TEMP_DIR}/volumes"
 
 log_info "--- Запуск бэкапа: $TIMESTAMP ---"
+
+# --- Проверка свободного места ---
+log_info "Проверка свободного дискового пространства..."
+REQUIRED_SPACE_MB=2000  # минимум 2GB для RPi5 с большими данными
+AVAILABLE_SPACE=$(df -m "${PROJECT_ROOT}/${BACKUP_DIR}" | tail -1 | awk '{print $4}')
+if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE_MB" ]; then
+    log_error "Недостаточно места: требуется ${REQUIRED_SPACE_MB}MB, доступно ${AVAILABLE_SPACE}MB"
+    exit 1
+fi
+log_info "Доступно ${AVAILABLE_SPACE}MB (требуется минимум ${REQUIRED_SPACE_MB}MB)"
 
 # --- 1. Остановка сервисов ---
 log_info "Остановка контейнеров для обеспечения целостности данных..."
@@ -123,6 +146,16 @@ fi
 
 log_info "Очистка старых бэкапов (храним $RETENTION_DAYS дн.)..."
 find "${PROJECT_ROOT}/${BACKUP_DIR}" -name "${PROJECT_NAME}_backup_*.tar.gz" -mtime +"${RETENTION_DAYS}" -delete
+
+# --- 6. Верификация архива ---
+log_info "Проверка целостности архива..."
+if tar -tzf "${BACKUP_FULL_PATH}" > /dev/null 2>&1; then
+    BACKUP_SIZE=$(du -h "${BACKUP_FULL_PATH}" | cut -f1)
+    log_info "✓ Архив корректен (размер: ${BACKUP_SIZE})"
+else
+    log_error "✗ Архив поврежден!"
+    exit 1
+fi
 
 log_info "Бэкап успешно создан: ${BACKUP_DIR}/${BACKUP_NAME}.tar.gz"
 # exit (сработает trap и поднимет контейнеры)

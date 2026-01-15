@@ -1,5 +1,12 @@
 name: rpi5-openwebui
 
+# Переиспользуемые конфигурации
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "1m"
+    max-file: "1"
+
 services:
   ollama:
     image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
@@ -13,10 +20,10 @@ services:
       - backend-net
     healthcheck:
       test: [ "CMD-SHELL", "ollama list || exit 1" ]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 15s
       retries: 5
-      start_period: 10s
+      start_period: 90s
     deploy:
       resources:
         limits:
@@ -27,10 +34,10 @@ services:
     container_name: caddy
     restart: unless-stopped
     environment:
-      - SEARXNG_BASE_URL="${SEARXNG_BASE_URL:-search.localhost}"
-      - OPENWEBUI_HOSTNAME="${OPENWEBUI_HOSTNAME:-ai.localhost}"
-      - CLIPROXY_HOSTNAME="${CLIPROXY_HOSTNAME:-proxy.localhost}"
-      - LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-internal}"
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-search.localhost}
+      - OPENWEBUI_HOSTNAME=${OPENWEBUI_HOSTNAME:-ai.localhost}
+      - CLIPROXY_HOSTNAME=${CLIPROXY_HOSTNAME:-proxy.localhost}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-internal}
     ports:
       - "80:80"
       - "443:443"
@@ -53,11 +60,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -94,7 +97,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
 
   valkey:
     container_name: valkey
@@ -105,11 +112,7 @@ services:
       - backend-net
     volumes:
       - valkey_data:/data
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+    logging: *default-logging
     healthcheck:
       test: [ "CMD", "valkey-cli", "ping" ]
       interval: 10s
@@ -136,7 +139,7 @@ services:
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
       - SEARXNG_PUBLIC_INSTANCE=${SEARXNG_PUBLIC_INSTANCE:-false}
-      - SEARXNG_LIMITER=${SEARXNG_LIMITER:-false}
+      - SEARXNG_LIMITER=${SEARXNG_LIMITER:-true}
       - SEARXNG_BASE_URL=https://search.${SEARXNG_BASE_URL:-search.localhost}/
       - SEARXNG_IMAGE_PROXY=${SEARXNG_IMAGE_PROXY:-false}
       - SEARXNG_SECRET=${SEARXNG_SECRET}
@@ -145,11 +148,7 @@ services:
       - SEARXNG_PORT=${SEARXNG_PORT:-8080}
       - SEARXNG_BIND_ADDRESS=${SEARXNG_BIND_ADDRESS:-0.0.0.0}
       - SEARXNG_METHOD=${SEARXNG_METHOD:-POST}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+    logging: *default-logging
     depends_on:
       valkey:
         condition: service_healthy
@@ -187,11 +186,7 @@ services:
       - ./cli-proxy-api-plus/config/config.yaml:/CLIProxyAPI/config.yaml
       - cli-proxy_auths:/root/.cli-proxy-api
       - ./cli-proxy-api-plus/logs:/CLIProxyAPI/logs
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+    logging: *default-logging
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8317/ || exit 1" ]
       interval: 30s
@@ -210,13 +205,32 @@ networks:
 volumes:
   ollama_data:
     name: ollama_data
+    labels:
+      com.backup: "true"
+      com.backup.exclude: "models"
+      com.service: "ollama"
   caddy_data:
     name: caddy_data
+    labels:
+      com.backup: "true"
+      com.service: "caddy"
   caddy_config:
     name: caddy_config
+    labels:
+      com.backup: "true"
+      com.service: "caddy"
   searxng_data:
     name: searxng_data
+    labels:
+      com.backup: "true"
+      com.service: "searxng"
   valkey_data:
     name: valkey_data
+    labels:
+      com.backup: "true"
+      com.service: "valkey"
   cli-proxy_auths:
     name: cli-proxy_auths
+    labels:
+      com.backup: "true"
+      com.service: "cli-proxy-api-plus"
