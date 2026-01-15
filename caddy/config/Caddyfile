@@ -74,8 +74,15 @@
 		header Cache-Control "no-cache"
 		header @static Cache-Control "public, max-age=30, stale-while-revalidate=60"
 		header @imageproxy Cache-Control "public, max-age=3600"
-		# Пересылка на контейнер searxng
-		reverse_proxy searxng:8080
+		
+		# Пересылка на контейнер searxng с явной передачей IP клиента
+		reverse_proxy searxng:8080 {
+			# Явно передаём заголовки с реальным IP клиента для предотвращения бана поисковиками
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
 	}
 }
 

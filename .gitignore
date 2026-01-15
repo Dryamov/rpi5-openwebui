@@ -7,3 +7,6 @@ cli-proxy-api-plus/config/config.yaml
 backups/
 scripts/logs/*.log
 
+# Restic repository
+restic-repo/
+/backups/restic-repo/

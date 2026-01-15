@@ -62,6 +62,7 @@ ws-auth: true
 nonstream-keepalive-interval: 0
 gemini-api-key:
   - api-key: AIzaSyDV22nFwt_wG8mm6qWyUN7b3BsmD-oGKRg
+openai-compatibility: []
 
 # Streaming behavior (SSE keep-alives + safe bootstrap retries).
 # streaming:

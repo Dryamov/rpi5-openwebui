@@ -68,28 +68,51 @@ Open WebUI is primarily configured via environment variables. For a full list of
 > Open WebUI stores many settings in its internal database (PersistentConfig). To force it to reload from environment variables, set `ENABLE_PERSISTENT_CONFIG=false`.
 
 ## Резервное копирование и восстановление (Backup & Restore)
-Для защиты ваших данных предусмотрена масштабируемая система бэкапов в папке `scripts/`. Скрипты работают с локальными файлами и Docker томами.
 
-### Особенности V2
-- **Конфигурация**: Все настройки вынесены в `scripts/backup.config`.
-- **Авто-обнаружение**: Скрипт автоматически находит тома с меткой `com.backup=true` (настроено в `docker-compose.yml`).
-- **Безопасность**: Используется `trap` для автоматического запуска контейнеров при прерывании бэкапа.
-- **Удаленное хранилище**: Поддержка `rclone` для отправки архивов в облако (Gdrive, S3 и др.).
+Доступны два типа бэкапов:
 
-### Создание бэкапа
+### 1. Полный tar.gz бэкап (традиционный)
+
 Запустите скрипт:
 ```bash
 ./scripts/backup.sh
 ```
-- Скрипт создаст архив в папке `./backups`.
-- По умолчанию исключаются тяжелые данные (модели Ollama), что экономит место.
-- Старые копии (старше 7 дней) удаляются автоматически.
+- Создаёт архив в `./backups`
+- Исключает тяжелые данные (модели Ollama)
+- Автоочистка старых копий (7 дней)
 
-### Восстановление
+**Восстановление**:
 ```bash
 ./scripts/restore.sh ./backups/rpi5-openwebui_backup_XXXX.tar.gz
 ```
-- **Внимание**: Текущие данные будут перезаписаны! Скрипт восстановит и файлы проекта, и содержимое Docker томов.
+
+### 2. Инкрементальный restic бэкап (рекомендуется)
+
+**Преимущества**: дедупликация (экономия 70-80% места), шифрование, быстрое восстановление
+
+**Установка**:
+```bash
+sudo apt-get install restic
+```
+
+**Быстрый старт**:
+```bash
+# Инициализация (первый раз)
+./scripts/backup-restic.sh init
+
+# Создание снапшота
+./scripts/backup-restic.sh
+
+# Просмотр бэкапов
+./scripts/restic-maintenance.sh list
+
+# Восстановление
+./scripts/restore-restic.sh restore latest
+```
+
+**Подробнее**: [docs/backup-restic.md](file:///home/dryamov/Repositories/rpi5-openwebui/docs/backup-restic.md)
+
+**Настройки**: В `scripts/backup.config` можно включить/выключить restic и настроить retention policy.
 
 ## Расширение системы (Добавление новых сервисов)
 Если вы добавили новый контейнер в `docker-compose.yml`, выполните следующие шаги:
@@ -118,16 +141,39 @@ Open WebUI is primarily configured via environment variables. For a full list of
 
 ## Мониторинг и Телеметрия
 
-OpenWebUI поддерживает распределенную трассировку и экспорт метрик через OpenTelemetry (OTLP). Это позволяет интегрировать мониторинг с современными observability стеками (Grafana LGTM, Jaeger, Tempo, Prometheus).
+Встроенный мониторинг с использованием Grafana LGTM stack (Grafana + Tempo + Mimir + Loki) и OpenTelemetry.
 
-Для детальной настройки см. [TELEMETRY.MD](file:///home/dryamov/Repositories/rpi5-openwebui/TELEMETRY.MD).
+### Быстрый старт
 
-**Быстрый старт**:
 ```bash
-docker compose -f docker-compose.otel.yaml up -d
+# Запуск с мониторингом
+docker compose --profile monitoring up -d
+
+# Без мониторинга (по умолчанию)
+docker compose up -d
 ```
 
-Grafana дашборд доступен на http://localhost:3000 (логин: `admin` / `admin`)
+**Доступ к Grafana**: http://localhost:3000 (admin/admin)
+
+### Что включает
+
+- **Grafana** — визуализация и дашборды
+- **Tempo** — distributed tracing
+- **Mimir** — Prometheus-совместимые метрики
+- **Loki** — агрегация логов
+
+### Активация OpenTelemetry
+
+В `.env` установите:
+```bash
+ENABLE_OTEL=true
+ENABLE_OTEL_TRACES=true
+ENABLE_OTEL_METRICS=true
+```
+
+Трейсы, метрики и логи автоматически отправятся в Grafana.
+
+**Подробнее**: [TELEMETRY.MD](file:///home/dryamov/Repositories/rpi5-openwebui/TELEMETRY.MD)
 
 ## Automated Testing
 
