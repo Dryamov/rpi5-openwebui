@@ -1,0 +1,50 @@
+---
+# yamllint configuration for rpi5-openwebui project
+
+extends: default
+
+rules:
+  # Indentation: 2 spaces
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Line length: flexible for docker-compose
+  line-length:
+    max: 120
+    level: warning
+
+  # Comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Document start: not required
+  document-start: disable
+
+  # Truthy values: allow both true/false and yes/no
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+
+  # Trailing spaces: not allowed
+  trailing-spaces: enable
+
+  # Empty lines
+  empty-lines:
+    max: 2
+
+  # Brackets
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+
+  # Braces
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+ignore: |
+  .github/
+  node_modules/
+  venv/

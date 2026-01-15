@@ -1,5 +1,9 @@
 # Raspberry Pi 5 OpenWebUI Stack
 
+![Docker Compose Validation](https://github.com/dryamov/rpi5-openwebui/workflows/Docker%20Compose%20Validation/badge.svg)
+![ShellCheck](https://github.com/dryamov/rpi5-openwebui/workflows/ShellCheck/badge.svg)
+![Backup Test](https://github.com/dryamov/rpi5-openwebui/workflows/Backup%20&%20Restore%20Test/badge.svg)
+
 A high-performance, self-hosted AI suite optimized for the Raspberry Pi 5. This stack includes OpenWebUI for the interface, Ollama for local model inference, SearXNG for privacy-respecting web search, and Caddy as a secure reverse proxy.
 
 ## Architecture
@@ -124,6 +128,18 @@ docker compose -f docker-compose.otel.yaml up -d
 ```
 
 Grafana дашборд доступен на http://localhost:3000 (логин: `admin` / `admin`)
+
+## Automated Testing
+
+Проект использует GitHub Actions для непрерывной интеграции (CI/CD):
+
+- **Docker Compose Validation** — автоматическая проверка конфигурации при каждом изменении
+- **ShellCheck** — валидация всех bash скриптов на ошибки и best practices
+- **Backup Testing** — еженедельное тестирование скриптов резервного копирования
+
+Все pull requests проходят автоматические проверки перед слиянием. Статус проверок отображается в бейджах выше.
+
+Подробнее о локальном тестировании и CI/CD процессе см. [docs/ci-cd.md](file:///home/dryamov/Repositories/rpi5-openwebui/docs/ci-cd.md).
 
 ## Документация
 

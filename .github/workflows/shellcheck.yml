@@ -1,0 +1,37 @@
+name: ShellCheck
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'scripts/**/*.sh'
+      - '.github/workflows/shellcheck.yml'
+  pull_request:
+    paths:
+      - 'scripts/**/*.sh'
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'
+          severity: warning
+          format: gcc
+        env:
+          SHELLCHECK_OPTS: --shell=bash --exclude=SC1091
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All shell scripts passed ShellCheck validation!"
+          echo ""
+          echo "Scanned directory: ./scripts"
+          echo "Shell: bash"
+          echo "Severity level: warning and above"

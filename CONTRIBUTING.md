@@ -190,17 +190,58 @@ services:
 
 ## Тестирование
 
-### Перед коммитом всегда проверяйте:
+### CI/CD Requirements
+
+Проект использует GitHub Actions для автоматического тестирования. При каждом push и pull request запускаются следующие проверки:
+
+- **Docker Compose Validation** — проверка синтаксиса и конфигурации
+- **ShellCheck** — валидация bash скриптов
+- **Backup Test** — тестирование скриптов backup/restore (еженедельно)
+
+> [!IMPORTANT]
+> Все pull requests должны проходить CI/CD проверки перед merge. Если тесты не проходят, PR не будет одобрен.
+
+### Локальное тестирование перед коммитом
 
 #### 1. Docker Compose валидация
 
 ```bash
+# Синтаксис и конфигурация
 docker compose config
+
+# YAML линтинг
+yamllint -c .yamllint.yml docker-compose.yml
 ```
 
 Не должно быть ошибок парсинга.
 
-#### 2. Health checks
+#### 2. Shell Scripts проверка
+
+```bash
+# Установить shellcheck (если еще не установлен)
+sudo apt-get install shellcheck
+
+# Проверить все скрипты
+find scripts -name "*.sh" -exec shellcheck {} \;
+```
+
+Исправьте все ошибки (errors), warnings допустимы.
+
+#### 3. Валидация переменных окружения
+
+```bash
+# Проверить, что все переменные из docker-compose.yml определены
+./scripts/ci/validate-env-vars.sh
+```
+
+#### 4. Проверка Health Checks
+
+```bash
+# Проверить наличие healthcheck для критичных сервисов
+./scripts/ci/validate-healthchecks.sh
+```
+
+#### 5. Health checks работоспособности
 
 ```bash
 docker compose up -d
@@ -210,7 +251,7 @@ docker compose ps
 # Все сервисы должны быть healthy
 ```
 
-#### 3. Backup/Restore
+#### 6. Backup/Restore
 
 ```bash
 # Создать тестовый бэкап
@@ -224,9 +265,18 @@ tar -tzf backups/последний_бэкап.tar.gz | head -20
 ./scripts/restore.sh backups/последний_бэкап.tar.gz
 ```
 
-### Автоматические тесты (TODO)
+### Установка инструментов для локального тестирования
 
-В будущем планируется добавить CI/CD с автоматическими тестами.
+```bash
+# ShellCheck для проверки bash скриптов
+sudo apt-get install shellcheck
+
+# yamllint для проверки YAML файлов
+pip install yamllint
+
+# Docker Compose (если еще не установлен)
+# см. официальную документацию Docker
+```
 
 ## Процесс Pull Request
 

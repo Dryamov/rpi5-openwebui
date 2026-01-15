@@ -1,0 +1,118 @@
+name: Backup & Restore Test
+
+on:
+  # Weekly test every Sunday at 3:00 AM UTC
+  schedule:
+    - cron: '0 3 * * 0'
+  
+  # Manual trigger
+  workflow_dispatch:
+  
+  # On changes to backup scripts
+  push:
+    branches: [main, master]
+    paths:
+      - 'scripts/backup.sh'
+      - 'scripts/restore.sh'
+      - 'scripts/backup.config'
+      - '.github/workflows/backup-test.yml'
+
+jobs:
+  test-backup-restore:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up test environment
+        run: |
+          echo "::group::Creating test directories"
+          mkdir -p test-volumes/data
+          mkdir -p test-backups
+          
+          # Create test data
+          echo "test-file-$(date +%s)" > test-volumes/data/test.txt
+          echo "config-data" > test-volumes/data/config.json
+          
+          echo "✓ Test environment created"
+          echo "::endgroup::"
+
+      - name: Configure backup script for testing
+        run: |
+          echo "::group::Preparing backup configuration"
+          
+          # Override backup directories for testing
+          export BACKUP_DIR="$(pwd)/test-backups"
+          export TEST_MODE=true
+          
+          echo "BACKUP_DIR=${BACKUP_DIR}"
+          echo "::endgroup::"
+
+      - name: Test backup creation
+        run: |
+          echo "::group::Running backup script"
+          
+          # Make script executable
+          chmod +x scripts/backup.sh
+          
+          # Run backup (with minimal configuration)
+          # Note: This is a syntax/execution test, not a full functional test
+          # Full test requires Docker Compose running
+          
+          if bash -n scripts/backup.sh; then
+            echo "✓ Backup script syntax is valid"
+          else
+            echo "✗ Backup script has syntax errors"
+            exit 1
+          fi
+          
+          echo "::endgroup::"
+
+      - name: Test restore script
+        run: |
+          echo "::group::Running restore script"
+          
+          # Make script executable
+          chmod +x scripts/restore.sh
+          
+          # Syntax check for restore script
+          if bash -n scripts/restore.sh; then
+            echo "✓ Restore script syntax is valid"
+          else
+            echo "✗ Restore script has syntax errors"
+            exit 1
+          fi
+          
+          echo "::endgroup::"
+
+      - name: Verify backup configuration
+        run: |
+          echo "::group::Validating backup.config"
+          
+          if [ -f "scripts/backup.config" ]; then
+            # Source the config to check for syntax errors
+            if bash -n scripts/backup.config; then
+              echo "✓ backup.config syntax is valid"
+            else
+              echo "✗ backup.config has syntax errors"
+              exit 1
+            fi
+          else
+            echo "⚠️  backup.config not found"
+          fi
+          
+          echo "::endgroup::"
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Backup and restore scripts validation passed!"
+          echo ""
+          echo "Validated:"
+          echo "  - backup.sh syntax and structure"
+          echo "  - restore.sh syntax and structure"
+          echo "  - backup.config configuration"
+          echo ""
+          echo "Note: Full functional testing requires Docker Compose environment"
+          echo "This test validates script syntax and basic structure only"
